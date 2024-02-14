@@ -1,0 +1,18 @@
+[
+  {
+    "ContainingType": "HackerNewsAPI.Controllers.HackerNewsController",
+    "Method": "GetBestStoriesAsync",
+    "RelativePath": "api/HackerNews/GetBestStories",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "n",
+        "Type": "System.Int32",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  }
+]
