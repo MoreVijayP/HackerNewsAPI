@@ -17,46 +17,54 @@ namespace HackerNewsAPI.Controllers
         [Route("GetBestStories")]
         public async Task<IActionResult> GetBestStoriesAsync(int n)
         {
-            DataRepository dataRepository = new DataRepository(projectDirectory + "/Repo/Data.json");
-
-            string apiUrl = "https://hacker-news.firebaseio.com/v0/beststories.json";
-            List<StoryItem> BestStories = new List<StoryItem>();
-            // Make GET request to the API
-            HttpResponseMessage response = await _client.GetAsync(apiUrl);
-            if (response.IsSuccessStatusCode)
+            try
             {
-                string responseBody = await response.Content.ReadAsStringAsync();
-                List<int> bestStoriesIds = JsonConvert.DeserializeObject<List<int>>(responseBody);
-                List<StoryItem> stories = dataRepository.ReadData();
+                DataRepository dataRepository = new DataRepository(projectDirectory + "/Repo/Data.json");
 
-                foreach (var item in bestStoriesIds)
+                string apiUrl = "https://hacker-news.firebaseio.com/v0/beststories.json";
+                List<StoryItem> BestStories = new List<StoryItem>();
+                // Make GET request to the API
+                HttpResponseMessage response = await _client.GetAsync(apiUrl);
+                if (response.IsSuccessStatusCode)
                 {
-                    if (!stories.Any(x => x.id == item))
-                    {
-                        string apiDetailUrl = "https://hacker-news.firebaseio.com/v0/item/" + item + ".json";
+                    string responseBody = await response.Content.ReadAsStringAsync();
+                    List<int> bestStoriesIds = JsonConvert.DeserializeObject<List<int>>(responseBody);
+                    List<StoryItem> stories = dataRepository.ReadData();
 
-                        HttpResponseMessage responseDetails = await _client.GetAsync(apiDetailUrl);
-                        if (responseDetails.IsSuccessStatusCode)
+                    foreach (var item in bestStoriesIds)
+                    {
+                        if (!stories.Any(x => x.id == item))
                         {
-                            string rsBody = await responseDetails.Content.ReadAsStringAsync();
-                            StoryItem storyItem = JsonConvert.DeserializeObject<StoryItem>(rsBody);
-                            stories.Add(storyItem);
+                            string apiDetailUrl = "https://hacker-news.firebaseio.com/v0/item/" + item + ".json";
+
+                            HttpResponseMessage responseDetails = await _client.GetAsync(apiDetailUrl);
+                            if (responseDetails.IsSuccessStatusCode)
+                            {
+                                string rsBody = await responseDetails.Content.ReadAsStringAsync();
+                                StoryItem storyItem = JsonConvert.DeserializeObject<StoryItem>(rsBody);
+                                stories.Add(storyItem);
+                                BestStories.Add(storyItem);
+                            }
+                        }
+                        else
+                        {
+                            StoryItem storyItem = stories.Where(x => x.id == item).First();
                             BestStories.Add(storyItem);
                         }
                     }
-                    else
-                    {
-                        StoryItem storyItem = stories.Where(x => x.id == item).First();
-                        BestStories.Add(storyItem);
-                    }
+                    dataRepository.WriteData(stories);
                 }
-                dataRepository.WriteData(stories);  
+                if (BestStories.Count > 0)
+                {
+                    return new JsonResult(BestStories.OrderByDescending(x => x.score).Take(n).ToList());
+                }
+                return StatusCode(StatusCodes.Status500InternalServerError);
             }
-            if (BestStories.Count > 0)
+            catch (Exception ex)
             {
-                return new JsonResult(BestStories.OrderByDescending(x => x.score).Take(n).ToList());
+                return StatusCode(StatusCodes.Status500InternalServerError, ex);
             }
-            return StatusCode(StatusCodes.Status500InternalServerError);
+           
         }
     }
 }
